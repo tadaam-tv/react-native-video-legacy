@@ -66,6 +66,7 @@ static int const RCTVideoUnset = -1;
     NSString* _deviceId;
     NSString* _licenseUrl;
     NSString* _drmType;
+    NSString* _authToken;
 }
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
@@ -94,6 +95,7 @@ static int const RCTVideoUnset = -1;
         _customerId = nil;
         _deviceId = nil;
         _licenseUrl = nil;
+        _authToken = nil;
         
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(applicationWillResignActive:)
@@ -125,10 +127,12 @@ static int const RCTVideoUnset = -1;
 - (AVPlayerViewController*)createPlayerViewController:(AVPlayer*)player withPlayerItem:(AVPlayerItem*)playerItem {
     RCTVideoPlayerViewController* playerLayer= [[RCTVideoPlayerViewController alloc] init];
     playerLayer.showsPlaybackControls = YES;
+    
     playerLayer.rctDelegate = self;
     playerLayer.view.frame = self.bounds;
     playerLayer.player = player;
     playerLayer.view.frame = self.bounds;
+    
     return playerLayer;
 }
 
@@ -1111,7 +1115,7 @@ static int const RCTVideoUnset = -1;
         _playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
         _playerLayer.frame = self.bounds;
         _playerLayer.needsDisplayOnBoundsChange = YES;
-        
+                
         // to prevent video from being animated when resizeMode is 'cover'
         // resize mode must be set before layer is added
         [self setResizeMode:_resizeMode];
@@ -1170,6 +1174,11 @@ static int const RCTVideoUnset = -1;
 - (void)setDrmType:(NSString*)drmType
 {
     _drmType = drmType;
+}
+
+- (void)setAuthToken:(NSString*)authToken
+{
+    _authToken = authToken;
 }
 
 - (void)setBase64CertificateString:(NSString*)base64CertificateString
@@ -1315,22 +1324,26 @@ static int const RCTVideoUnset = -1;
     
     // PRAPARE REQUEST PAYLOAD CONTAINING SPC DATA
     NSMutableDictionary *httpPayloadDict = [NSMutableDictionary dictionary];
-    httpPayloadDict[@"LatensRegistration"] = [NSMutableDictionary dictionary];
-    httpPayloadDict[@"LatensRegistration"][@"CustomerName"] = _customerId;
-    httpPayloadDict[@"LatensRegistration"][@"AccountName"] = @"PlayReadyAccount";
-    httpPayloadDict[@"LatensRegistration"][@"PortalId"] = _deviceId;
-    httpPayloadDict[@"LatensRegistration"][@"FriendlyName"] = @"Swoop FairPlay Test";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"] = [NSMutableDictionary dictionary];
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"FormatVersion"] = @"1";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceType"] = @"Device";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"OSType"] = [currentDevice systemName];
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"OSVersion"] = [currentDevice systemVersion];
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMProvider"] = @"Apple";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMVersion"] = @"1";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMType"] = _drmType;
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceVendor"] = @"Apple";
-    httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceModel"] = [currentDevice model];
     httpPayloadDict[@"Payload"] = [spcData base64EncodedStringWithOptions:0];
+    if (_authToken) {
+        httpPayloadDict[@"AuthToken"] = _authToken;
+    } else {
+        httpPayloadDict[@"LatensRegistration"] = [NSMutableDictionary dictionary];
+        httpPayloadDict[@"LatensRegistration"][@"CustomerName"] = _customerId;
+        httpPayloadDict[@"LatensRegistration"][@"AccountName"] = @"PlayReadyAccount";
+        httpPayloadDict[@"LatensRegistration"][@"PortalId"] = _deviceId;
+        httpPayloadDict[@"LatensRegistration"][@"FriendlyName"] = @"Swoop FairPlay Test";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"] = [NSMutableDictionary dictionary];
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"FormatVersion"] = @"1";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceType"] = @"Device";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"OSType"] = [currentDevice systemName];
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"OSVersion"] = [currentDevice systemVersion];
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMProvider"] = @"Apple";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMVersion"] = @"1";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DRMType"] = _drmType;
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceVendor"] = @"Apple";
+        httpPayloadDict[@"LatensRegistration"][@"DeviceInfo"][@"DeviceModel"] = [currentDevice model];        
+    }
     
     NSData *httpPayloadJsonData = [NSJSONSerialization dataWithJSONObject:httpPayloadDict options:NSJSONWritingPrettyPrinted error:&error];
     NSData* httpPayloadData = [[httpPayloadJsonData base64EncodedStringWithOptions:0] dataUsingEncoding:NSUTF8StringEncoding];
