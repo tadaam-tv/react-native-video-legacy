@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = "7.0"
   s.tvos.deployment_target = "9.0"
 
-  s.source       = { :git => "https://github.com/tadaam-tv/react-native-video.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/tadaam-tv/react-native-video-legacy.git", :tag => "#{s.version}" }
 
   s.source_files  = "ios/*.{h,m}"
 
